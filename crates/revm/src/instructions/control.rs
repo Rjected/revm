@@ -1,10 +1,10 @@
 use crate::{gas, interpreter::Interpreter, Return, Spec, SpecId::*};
-use primitive_types::U256;
+use ruint::Uint;
 
 pub fn jump(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::MID);
     pop!(interp, dest);
-    let dest = as_usize_or_fail!(dest, Return::InvalidJump);
+    let dest = as_usize_or_fail_ruint!(dest, Return::InvalidJump);
     if interp.contract.is_valid_jump(dest) {
         // Safety: In analysis we are checking create our jump table and we do check above to be
         // sure that jump is safe to execute.
@@ -18,8 +18,8 @@ pub fn jump(interp: &mut Interpreter) -> Return {
 pub fn jumpi(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::HIGH);
     pop!(interp, dest, value);
-    if !value.is_zero() {
-        let dest = as_usize_or_fail!(dest, Return::InvalidJump);
+    if value != Uint::ZERO {
+        let dest = as_usize_or_fail_ruint!(dest, Return::InvalidJump);
         if interp.contract.is_valid_jump(dest) {
             // Safety: In analysis we are checking if jump is valid destination and
             // this `if` makes this unsafe block safe.
@@ -41,18 +41,18 @@ pub fn jumpdest(interp: &mut Interpreter) -> Return {
 
 pub fn pc(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::BASE);
-    push!(interp, U256::from(interp.program_counter() - 1));
+    push!(interp, Uint::from(interp.program_counter() - 1));
     Return::Continue
 }
 
 pub fn ret(interp: &mut Interpreter) -> Return {
     // zero gas cost gas!(interp,gas::ZERO);
     pop!(interp, start, len);
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     if len == 0 {
         interp.return_range = usize::MAX..usize::MAX;
     } else {
-        let offset = as_usize_or_fail!(start, Return::OutOfGas);
+        let offset = as_usize_or_fail_ruint!(start, Return::OutOfGas);
         memory_resize!(interp, offset, len);
         interp.return_range = offset..(offset + len);
     }
@@ -64,11 +64,11 @@ pub fn revert<SPEC: Spec>(interp: &mut Interpreter) -> Return {
     // EIP-140: REVERT instruction
     check!(SPEC::enabled(BYZANTIUM));
     pop!(interp, start, len);
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     if len == 0 {
         interp.return_range = usize::MAX..usize::MAX;
     } else {
-        let offset = as_usize_or_fail!(start, Return::OutOfGas);
+        let offset = as_usize_or_fail_ruint!(start, Return::OutOfGas);
         memory_resize!(interp, offset, len);
         interp.return_range = offset..(offset + len);
     }

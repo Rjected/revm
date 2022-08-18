@@ -1,77 +1,66 @@
 use crate::{gas, Interpreter, Return, Spec};
 
 use super::i256::{i256_div, i256_mod};
-use core::{convert::TryInto, ops::Rem};
-use primitive_types::{U256, U512};
+use core::ops::Rem;
+use primitive_types::U256;
+use ruint::Uint;
 
-pub fn div(op1: U256, op2: U256) -> U256 {
-    if op2.is_zero() {
-        U256::zero()
+pub fn div(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
+    if op2 == Uint::ZERO {
+        Uint::ZERO
     } else {
         //op1 / op2
-        super::i256::div_u256::div_mod(op1, op2).0
+        // super::i256::div_u256::div_mod(op1, op2).0
+        op1.div_rem(op2).0
     }
 }
 
-pub fn sdiv(op1: U256, op2: U256) -> U256 {
+pub fn sdiv(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
     i256_div(op1, op2)
 }
 
-pub fn rem(op1: U256, op2: U256) -> U256 {
-    if op2.is_zero() {
-        U256::zero()
+pub fn rem(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
+    if op2 == Uint::ZERO {
+        Uint::ZERO
     } else {
         op1.rem(op2)
     }
 }
 
-pub fn smod(op1: U256, op2: U256) -> U256 {
-    if op2.is_zero() {
-        U256::zero()
+pub fn smod(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
+    if op2 == Uint::ZERO {
+        Uint::ZERO
     } else {
         i256_mod(op1, op2)
     }
 }
 
-pub fn addmod(op1: U256, op2: U256, op3: U256) -> U256 {
-    if op3.is_zero() {
-        U256::zero()
-    } else {
-        let op1: U512 = op1.into();
-        let op2: U512 = op2.into();
-        let op3: U512 = op3.into();
-        let v = (op1 + op2) % op3;
-        v.try_into()
-            .expect("op3 is less than U256::MAX, thus it never overflows; qed")
-    }
+#[inline]
+pub fn addmod(op1: Uint<256, 4>, op2: Uint<256, 4>, op3: Uint<256, 4>) -> Uint<256, 4> {
+    op1.add_mod(op2, op3)
 }
 
-pub fn mulmod(op1: U256, op2: U256, op3: U256) -> U256 {
-    if op3.is_zero() {
-        U256::zero()
-    } else {
-        let op1: U512 = op1.into();
-        let op2: U512 = op2.into();
-        let op3: U512 = op3.into();
-        let v = (op1 * op2) % op3;
-        v.try_into()
-            .expect("op3 is less than U256::MAX, thus it never overflows; qed")
-    }
+#[inline]
+pub fn mulmod(op1: Uint<256, 4>, op2: Uint<256, 4>, op3: Uint<256, 4>) -> Uint<256, 4> {
+    op1.mul_mod(op2, op3)
 }
 
-pub fn exp(op1: U256, op2: U256) -> U256 {
-    let mut op1 = op1;
-    let mut op2 = op2;
-    let mut r: U256 = 1.into();
-
-    while op2 != 0.into() {
-        if op2 & 1.into() != 0.into() {
-            r = r.overflowing_mul(op1).0;
+#[inline]
+pub fn exp(mut op1: Uint<256, 4>, mut op2: Uint<256, 4>) -> Uint<256, 4> {
+    // taken from the pow_mod implementation in ruint
+    // Exponentiation by squaring
+    let mut result = Uint::from(1);
+    while op2 > Uint::ZERO {
+        // Multiply by base
+        if op2.as_limbs()[0] & 1 == 1 {
+            result = result.overflowing_mul(op1).0;
         }
-        op2 >>= 1;
+
+        // Square base
         op1 = op1.overflowing_mul(op1).0;
+        op2 >>= 1;
     }
-    r
+    result
 }
 
 pub fn eval_exp<SPEC: Spec>(interp: &mut Interpreter) -> Return {
@@ -99,7 +88,7 @@ pub fn eval_exp<SPEC: Spec>(interp: &mut Interpreter) -> Return {
 /// `b == 0` then the yellow paper says the output should start with all zeros, then end with
 /// bits from `b`; this is equal to `y & mask` where `&` is bitwise `AND`.
 
-pub fn signextend(op1: U256, op2: U256) -> U256 {
+pub fn signextend_primitive(op1: U256, op2: U256) -> U256 {
     if op1 < U256::from(32) {
         // `low_u32` works since op1 < 32
         let bit_index = (8 * op1.low_u32() + 7) as usize;
@@ -115,11 +104,28 @@ pub fn signextend(op1: U256, op2: U256) -> U256 {
     }
 }
 
+pub fn signextend(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
+    if op1 < Uint::from(32) {
+        // `op1.as_limbs()[0] as u32` works since op1 < 32
+        let op1_low = op1.as_limbs()[0] as u32;
+        let bit_index = (8 * op1_low + 7) as usize;
+        let bit = op2.bit(bit_index);
+        let mask = Uint::from((1 << bit_index) - 1);
+        if bit {
+            op2 | !mask
+        } else {
+            op2 & mask
+        }
+    } else {
+        op2
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::vec;
 
-    use super::{signextend, U256};
+    use super::{signextend, signextend_primitive, U256};
 
     /// Test to ensure new (optimized) `signextend` implementation is equivalent to the previous
     /// implementation.
@@ -147,9 +153,13 @@ mod tests {
 
     fn compare_old_signextend(x: U256, y: U256) {
         let old = old_signextend(x, y);
-        let new = signextend(x, y);
+        let new = signextend_primitive(x, y);
 
         assert_eq!(old, new);
+
+        // now compare with the new ruint version
+        let new_ruint = U256::from(signextend(x.into(), y.into()));
+        assert_eq!(old, new_ruint)
     }
 
     fn old_signextend(op1: U256, op2: U256) -> U256 {

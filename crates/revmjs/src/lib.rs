@@ -75,8 +75,9 @@ impl EVM {
     /****** DATABASE RELATED ********/
     pub fn insert_account(&mut self, address: BN, nonce: u64, balance: BN, code: &[u8]) {
         let address = address.try_into().unwrap();
+        let balance_primitive: U256 = balance.try_into().unwrap();
         let acc_info = AccountInfo::new(
-            balance.try_into().unwrap(),
+            balance_primitive.into(),
             nonce,
             Bytecode::new_raw(Bytes::copy_from_slice(code)),
         );

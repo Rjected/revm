@@ -3,6 +3,7 @@ use core::cmp::min;
 use crate::{alloc::vec::Vec, interpreter::bytecode::Bytecode, Return, SpecId};
 use bytes::Bytes;
 use primitive_types::{H160, H256, U256};
+use ruint::Uint;
 
 pub const KECCAK_EMPTY: H256 = H256([
     0xc5, 0xd2, 0x46, 0x01, 0x86, 0xf7, 0x23, 0x3c, 0x92, 0x7e, 0x7d, 0xb2, 0xdc, 0xc7, 0x03, 0xc0,
@@ -14,7 +15,7 @@ pub const KECCAK_EMPTY: H256 = H256([
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccountInfo {
     /// Account balance.
-    pub balance: U256,
+    pub balance: Uint<256, 4>,
     /// Account nonce.
     pub nonce: u64,
     /// code hash,
@@ -27,7 +28,7 @@ pub struct AccountInfo {
 impl Default for AccountInfo {
     fn default() -> Self {
         Self {
-            balance: U256::zero(),
+            balance: Uint::ZERO,
             code_hash: KECCAK_EMPTY,
             code: Some(Bytecode::new()),
             nonce: 0,
@@ -36,7 +37,7 @@ impl Default for AccountInfo {
 }
 
 impl AccountInfo {
-    pub fn new(balance: U256, nonce: u64, code: Bytecode) -> Self {
+    pub fn new(balance: Uint<256, 4>, nonce: u64, code: Bytecode) -> Self {
         let code_hash = code.hash();
         Self {
             balance,
@@ -48,14 +49,14 @@ impl AccountInfo {
 
     pub fn is_empty(&self) -> bool {
         let code_empty = self.code_hash == KECCAK_EMPTY || self.code_hash.is_zero();
-        self.balance.is_zero() && self.nonce == 0 && code_empty
+        self.balance == Uint::ZERO && self.nonce == 0 && code_empty
     }
 
     pub fn exists(&self) -> bool {
         !self.is_empty()
     }
 
-    pub fn from_balance(balance: U256) -> Self {
+    pub fn from_balance(balance: Uint<256, 4>) -> Self {
         AccountInfo {
             balance,
             ..Default::default()

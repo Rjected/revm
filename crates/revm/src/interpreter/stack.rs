@@ -1,12 +1,13 @@
 use crate::{alloc::vec::Vec, Return};
-use primitive_types::{H256, U256};
+use primitive_types::H256;
+use ruint::Uint;
 
 pub const STACK_LIMIT: usize = 1024;
 
 /// EVM stack.
 #[derive(Clone)]
 pub struct Stack {
-    data: Vec<U256>,
+    data: Vec<Uint<256, 4>>,
 }
 
 #[cfg(feature = "std")]
@@ -56,7 +57,7 @@ impl Stack {
 
     #[inline]
     /// Stack data.
-    pub fn data(&self) -> &Vec<U256> {
+    pub fn data(&self) -> &Vec<Uint<256, 4>> {
         &self.data
     }
 
@@ -74,7 +75,7 @@ impl Stack {
     #[inline]
     /// Pop a value from the stack. If the stack is already empty, returns the
     /// `StackUnderflow` error.
-    pub fn pop(&mut self) -> Result<U256, Return> {
+    pub fn pop(&mut self) -> Result<Uint<256, 4>, Return> {
         self.data.pop().ok_or(Return::StackUnderflow)
     }
 
@@ -83,7 +84,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop_unsafe(&mut self) -> U256 {
+    pub unsafe fn pop_unsafe(&mut self) -> Uint<256, 4> {
         let mut len = self.data.len();
         len -= 1;
         self.data.set_len(len);
@@ -95,7 +96,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn top_unsafe(&mut self) -> &mut U256 {
+    pub unsafe fn top_unsafe(&mut self) -> &mut Uint<256, 4> {
         let len = self.data.len();
         self.data.get_unchecked_mut(len - 1)
     }
@@ -105,7 +106,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop_top_unsafe(&mut self) -> (U256, &mut U256) {
+    pub unsafe fn pop_top_unsafe(&mut self) -> (Uint<256, 4>, &mut Uint<256, 4>) {
         let mut len = self.data.len();
         let pop = *self.data.get_unchecked(len - 1);
         len -= 1;
@@ -119,7 +120,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop2_top_unsafe(&mut self) -> (U256, U256, &mut U256) {
+    pub unsafe fn pop2_top_unsafe(&mut self) -> (Uint<256, 4>, Uint<256, 4>, &mut Uint<256, 4>) {
         let mut len = self.data.len();
         let pop1 = *self.data.get_unchecked(len - 1);
         len -= 2;
@@ -134,7 +135,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop2_unsafe(&mut self) -> (U256, U256) {
+    pub unsafe fn pop2_unsafe(&mut self) -> (Uint<256, 4>, Uint<256, 4>) {
         let mut len = self.data.len();
         len -= 2;
         self.data.set_len(len);
@@ -149,7 +150,7 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop3_unsafe(&mut self) -> (U256, U256, U256) {
+    pub unsafe fn pop3_unsafe(&mut self) -> (Uint<256, 4>, Uint<256, 4>, Uint<256, 4>) {
         let mut len = self.data.len();
         len -= 3;
         self.data.set_len(len);
@@ -165,7 +166,9 @@ impl Stack {
     ///
     /// # Safety
     /// The caller is responsible to check length of array
-    pub unsafe fn pop4_unsafe(&mut self) -> (U256, U256, U256, U256) {
+    pub unsafe fn pop4_unsafe(
+        &mut self,
+    ) -> (Uint<256, 4>, Uint<256, 4>, Uint<256, 4>, Uint<256, 4>) {
         let mut len = self.data.len();
         len -= 4;
         self.data.set_len(len);
@@ -184,14 +187,14 @@ impl Stack {
         if self.data.len() + 1 > STACK_LIMIT {
             return Err(Return::StackOverflow);
         }
-        self.data.push(U256::from_big_endian(value.as_ref()));
+        self.data.push(Uint::from_be_bytes(value.0));
         Ok(())
     }
 
     #[inline]
     /// Push a new value into the stack. If it will exceed the stack limit,
     /// returns `StackOverflow` error and leaves the stack unchanged.
-    pub fn push(&mut self, value: U256) -> Result<(), Return> {
+    pub fn push(&mut self, value: Uint<256, 4>) -> Result<(), Return> {
         if self.data.len() + 1 > STACK_LIMIT {
             return Err(Return::StackOverflow);
         }
@@ -203,7 +206,7 @@ impl Stack {
     /// Peek a value at given index for the stack, where the top of
     /// the stack is at index `0`. If the index is too large,
     /// `StackError::Underflow` is returned.
-    pub fn peek(&self, no_from_top: usize) -> Result<U256, Return> {
+    pub fn peek(&self, no_from_top: usize) -> Result<Uint<256, 4>, Return> {
         if self.data.len() > no_from_top {
             Ok(self.data[self.data.len() - no_from_top - 1])
         } else {
@@ -236,8 +239,8 @@ impl Stack {
         }
         // Safety: length is checked before so we are okay to switch bytes in unsafe way.
         unsafe {
-            let pa: *mut U256 = self.data.get_unchecked_mut(len - 1);
-            let pb: *mut U256 = self.data.get_unchecked_mut(len - 1 - N);
+            let pa: *mut Uint<256, 4> = self.data.get_unchecked_mut(len - 1);
+            let pb: *mut Uint<256, 4> = self.data.get_unchecked_mut(len - 1 - N);
             core::ptr::swap(pa, pb);
         }
         Return::Continue
@@ -251,41 +254,43 @@ impl Stack {
             return Return::StackOverflow;
         }
 
-        let slot;
+        let slot: &mut Uint<256, 4>;
         // Safety: check above ensures us that we are okey in increment len.
         unsafe {
             self.data.set_len(new_len);
             slot = self.data.get_unchecked_mut(new_len - 1);
         }
 
-        slot.0 = [0u64; 4];
+        *slot = Uint::ZERO;
+        // we only index slot_limbs with 0,1,2,3 so this works
+        let slot_limbs = unsafe { slot.as_limbs_mut() };
         let mut dangling = [0u8; 8];
         if N < 8 {
             dangling[8 - N..].copy_from_slice(slice);
-            slot.0[0] = u64::from_be_bytes(dangling);
+            slot_limbs[0] = u64::from_be_bytes(dangling);
         } else if N < 16 {
-            slot.0[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
+            slot_limbs[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
             if N != 8 {
                 dangling[8 * 2 - N..].copy_from_slice(&slice[..N - 8]);
-                slot.0[1] = u64::from_be_bytes(dangling);
+                slot_limbs[1] = u64::from_be_bytes(dangling);
             }
         } else if N < 24 {
-            slot.0[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
-            slot.0[1] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 16, 8));
+            slot_limbs[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
+            slot_limbs[1] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 16, 8));
             if N != 16 {
                 dangling[8 * 3 - N..].copy_from_slice(&slice[..N - 16]);
-                slot.0[2] = u64::from_be_bytes(dangling);
+                slot_limbs[2] = u64::from_be_bytes(dangling);
             }
         } else {
             // M<32
-            slot.0[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
-            slot.0[1] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 16, 8));
-            slot.0[2] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 24, 8));
+            slot_limbs[0] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 8, 8));
+            slot_limbs[1] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 16, 8));
+            slot_limbs[2] = u64::from_be_bytes(*arrayref::array_ref!(slice, N - 24, 8));
             if N == 32 {
-                slot.0[3] = u64::from_be_bytes(*arrayref::array_ref!(slice, 0, 8));
+                slot_limbs[3] = u64::from_be_bytes(*arrayref::array_ref!(slice, 0, 8));
             } else if N != 24 {
                 dangling[8 * 4 - N..].copy_from_slice(&slice[..N - 24]);
-                slot.0[3] = u64::from_be_bytes(dangling);
+                slot_limbs[3] = u64::from_be_bytes(dangling);
             }
         }
         Return::Continue
@@ -295,7 +300,7 @@ impl Stack {
     /// Set a value at given index for the stack, where the top of the
     /// stack is at index `0`. If the index is too large,
     /// `StackError::Underflow` is returned.
-    pub fn set(&mut self, no_from_top: usize, val: U256) -> Result<(), Return> {
+    pub fn set(&mut self, no_from_top: usize, val: Uint<256, 4>) -> Result<(), Return> {
         if self.data.len() > no_from_top {
             let len = self.data.len();
             self.data[len - no_from_top - 1] = val;

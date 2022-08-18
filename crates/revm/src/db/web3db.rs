@@ -63,7 +63,8 @@ impl Database for Web3DB {
                 balance
                     .unwrap_or_else(|e| panic!("web3 get balance error:{:?}", e))
                     .0,
-            ),
+            )
+            .into(),
             nonce
                 .unwrap_or_else(|e| panic!("web3 get nonce error:{:?}", e))
                 .as_u64(),

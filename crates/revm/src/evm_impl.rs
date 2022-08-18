@@ -17,6 +17,7 @@ use core::{cmp::min, marker::PhantomData};
 use hashbrown::HashMap as Map;
 use primitive_types::{H160, H256, U256};
 use revm_precompiles::{Precompile, PrecompileOutput, Precompiles};
+use ruint::Uint;
 use sha3::{Digest, Keccak256};
 
 pub struct EVMData<'a, DB> {
@@ -43,7 +44,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact
 {
     fn transact(&mut self) -> (ExecutionResult, State) {
         let caller = self.data.env.tx.caller;
-        let value = self.data.env.tx.value;
+        let value: Uint<256, 4> = self.data.env.tx.value.into();
         let data = self.data.env.tx.data.clone();
         let gas_limit = self.data.env.tx.gas_limit;
         let exit = |reason: Return| (ExecutionResult::new_with_reason(reason), State::new());
@@ -99,7 +100,8 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact
         }
 
         // check if we have enought balance for value transfer.
-        let difference = self.data.env.tx.gas_price - self.data.env.effective_gas_price();
+        let difference: Uint<256, 4> = Uint::from(self.data.env.tx.gas_price)
+            - Uint::from(self.data.env.effective_gas_price());
         if difference + value > self.data.subroutine.account(caller).info.balance {
             return exit(Return::OutOfFund);
         }
@@ -118,7 +120,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact
                     caller,
                     address,
                     code_address: address,
-                    apparent_value: value,
+                    apparent_value: value.into(),
                     scheme: CallScheme::Call,
                 };
                 let mut call_input = CallInputs {
@@ -126,7 +128,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact
                     transfer: Transfer {
                         source: caller,
                         target: address,
-                        value,
+                        value: value.into(),
                     },
                     input: data,
                     gas_limit,
@@ -139,7 +141,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact
                 let mut create_input = CreateInputs {
                     caller,
                     scheme,
-                    value,
+                    value: value.into(),
                     init_code: data,
                     gas_limit,
                 };
@@ -488,7 +490,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
         let checkpoint = self.data.subroutine.create_checkpoint();
 
         // Touch address. For "EIP-158 State Clear", this will erase empty accounts.
-        if inputs.transfer.value.is_zero() {
+        if inputs.transfer.value == U256::zero() {
             self.load_account(inputs.context.address);
             self.data
                 .subroutine
@@ -619,7 +621,7 @@ impl<'a, GSPEC: Spec, DB: Database + 'a, const INSPECT: bool> Host
     fn balance(&mut self, address: H160) -> (U256, bool) {
         let is_cold = self.inner_load_account(address);
         let balance = self.data.subroutine.account(address).info.balance;
-        (balance, is_cold)
+        (balance.into(), is_cold)
     }
 
     fn code(&mut self, address: H160) -> (Bytecode, bool) {

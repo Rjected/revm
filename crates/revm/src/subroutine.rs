@@ -3,6 +3,7 @@ use alloc::{vec, vec::Vec};
 use core::mem::{self};
 use hashbrown::{hash_map::Entry, HashMap as Map};
 use primitive_types::{H160, U256};
+use ruint::Uint;
 
 use crate::{db::Database, AccountInfo, Log};
 
@@ -182,7 +183,7 @@ impl SubRoutine {
 
     pub fn balance_add(&mut self, address: H160, payment: U256) -> bool {
         let acc = self.log_dirty(address, |_| {});
-        if let Some(balance) = acc.info.balance.checked_add(payment) {
+        if let Some(balance) = acc.info.balance.checked_add(payment.into()) {
             acc.info.balance = balance;
             return true;
         }
@@ -191,7 +192,7 @@ impl SubRoutine {
 
     pub fn balance_sub(&mut self, address: H160, payment: U256) -> bool {
         let acc = self.log_dirty(address, |_| {});
-        if let Some(balance) = acc.info.balance.checked_sub(payment) {
+        if let Some(balance) = acc.info.balance.checked_sub(payment.into()) {
             acc.info.balance = balance;
             return true;
         }
@@ -213,7 +214,7 @@ impl SubRoutine {
             }
             Entry::Vacant(entry) => {
                 let changelog = if let Filth::Precompile(was_dirty) = acc.filth {
-                    ChangeLog::PrecompileBalanceChange(acc.info.balance, was_dirty)
+                    ChangeLog::PrecompileBalanceChange(acc.info.balance.into(), was_dirty)
                 } else {
                     let was_clean = matches!(acc.filth, Filth::Clean);
                     let mut changelog = DirtyChangeLog {
@@ -244,16 +245,16 @@ impl SubRoutine {
         let to_is_cold = self.load_account(to, db);
         // check from balance and substract value
         let from = self.log_dirty(from, |_| {});
-        if from.info.balance < value {
+        if from.info.balance < value.into() {
             return Err(Return::OutOfFund);
         }
-        from.info.balance -= value;
+        from.info.balance -= Uint::from(value);
 
         let to = self.log_dirty(to, |_| {});
         to.info.balance = to
             .info
             .balance
-            .checked_add(value)
+            .checked_add(value.into())
             .ok_or(Return::OverflowPayment)?;
 
         Ok((from_is_cold, to_is_cold))
@@ -296,7 +297,7 @@ impl SubRoutine {
             .last_mut()
             .unwrap()
             .entry(address)
-            .or_insert_with(|| ChangeLog::Created(original_balance, original_filth));
+            .or_insert_with(|| ChangeLog::Created(original_balance.into(), original_filth));
 
         true
     }
@@ -314,7 +315,7 @@ impl SubRoutine {
             ChangeLog::ColdLoaded => state.remove(&add),
             ChangeLog::PrecompileBalanceChange(original_balance, flag) => {
                 let acc = state.get_mut(&add).unwrap();
-                acc.info.balance = original_balance;
+                acc.info.balance = original_balance.into();
                 if add == Self::PRECOMPILE3 {
                     acc.filth = Filth::Precompile(true);
                 } else {
@@ -331,7 +332,7 @@ impl SubRoutine {
                 acc.info.code = Some(Bytecode::new());
                 acc.info.code_hash = KECCAK_EMPTY;
                 acc.info.nonce = 0;
-                acc.info.balance = balance;
+                acc.info.balance = balance.into();
                 acc.filth = orig_filth;
                 acc.storage.clear();
                 Some(acc.clone())
@@ -442,7 +443,7 @@ impl SubRoutine {
         let (had_value, previously_destroyed) = {
             let acc = self.state.get_mut(&address).unwrap();
             let value = acc.info.balance;
-            let had_value = !value.is_zero();
+            let had_value = value != Uint::ZERO;
             let previously_destroyed = matches!(acc.filth, Filth::Destroyed);
             let target = self.log_dirty(target, |_| {});
             target.info.balance += value;
@@ -472,7 +473,7 @@ impl SubRoutine {
         acc.filth = Filth::Destroyed;
         acc.storage = Map::new();
         acc.info.nonce = 0;
-        acc.info.balance = U256::zero();
+        acc.info.balance = Uint::ZERO;
         SelfDestructResult {
             had_value,
             is_cold,

@@ -194,7 +194,7 @@ impl<DB: Database> Inspector<DB> for Controller {
                 Ctrl::StackPop => {
                     println!("pop:{:?}", interp.stack.pop());
                 }
-                Ctrl::StackPush(value) => match interp.stack.push(value) {
+                Ctrl::StackPush(value) => match interp.stack.push(value.into()) {
                     Ok(()) => println!("stack:{}", interp.stack()),
                     Err(e) => println!("push error:{:?}", e),
                 },

@@ -1,18 +1,18 @@
 use std::cmp::min;
 
 use crate::{gas, interpreter::Interpreter, Return, Spec, SpecId::*, KECCAK_EMPTY};
-use primitive_types::{H256, U256};
-
+use primitive_types::H256;
+use ruint::Uint;
 use sha3::{Digest, Keccak256};
 
 pub fn sha3(interp: &mut Interpreter) -> Return {
     pop!(interp, from, len);
     gas_or_fail!(interp, gas::sha3_cost(len));
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     let h256 = if len == 0 {
         KECCAK_EMPTY
     } else {
-        let from = as_usize_or_fail!(from, Return::OutOfGas);
+        let from = as_usize_or_fail_ruint!(from, Return::OutOfGas);
         memory_resize!(interp, from, len);
         H256::from_slice(Keccak256::digest(interp.memory.get_slice(from, len)).as_slice())
     };
@@ -37,20 +37,20 @@ pub fn caller(interp: &mut Interpreter) -> Return {
 
 pub fn codesize(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::BASE);
-    let size = U256::from(interp.contract.bytecode.len());
-    push!(interp, size);
+    let size = interp.contract.bytecode.len();
+    push!(interp, Uint::from(size));
     Return::Continue
 }
 
 pub fn codecopy(interp: &mut Interpreter) -> Return {
     pop!(interp, memory_offset, code_offset, len);
     gas_or_fail!(interp, gas::verylowcopy_cost(len));
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     if len == 0 {
         return Return::Continue;
     }
-    let memory_offset = as_usize_or_fail!(memory_offset, Return::OutOfGas);
-    let code_offset = as_usize_saturated!(code_offset);
+    let memory_offset = as_usize_or_fail_ruint!(memory_offset, Return::OutOfGas);
+    let code_offset = as_usize_saturated_ruint!(code_offset);
     memory_resize!(interp, memory_offset, len);
 
     // Safety: set_data is unsafe function and memory_resize ensures us that it is safe to call it
@@ -66,7 +66,7 @@ pub fn codecopy(interp: &mut Interpreter) -> Return {
 pub fn calldataload(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::VERYLOW);
     pop!(interp, index);
-    let index = as_usize_saturated!(index);
+    let index = as_usize_saturated_ruint!(index);
 
     let load = if index < interp.contract.input.len() {
         let mut load = H256::zero();
@@ -83,7 +83,7 @@ pub fn calldataload(interp: &mut Interpreter) -> Return {
 
 pub fn calldatasize(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::BASE);
-    let len = U256::from(interp.contract.input.len());
+    let len = Uint::from(interp.contract.input.len());
     push!(interp, len);
     Return::Continue
 }
@@ -99,12 +99,12 @@ pub fn callvalue(interp: &mut Interpreter) -> Return {
 pub fn calldatacopy(interp: &mut Interpreter) -> Return {
     pop!(interp, memory_offset, data_offset, len);
     gas_or_fail!(interp, gas::verylowcopy_cost(len));
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     if len == 0 {
         return Return::Continue;
     }
-    let memory_offset = as_usize_or_fail!(memory_offset, Return::OutOfGas);
-    let data_offset = as_usize_saturated!(data_offset);
+    let memory_offset = as_usize_or_fail_ruint!(memory_offset, Return::OutOfGas);
+    let data_offset = as_usize_saturated_ruint!(data_offset);
     memory_resize!(interp, memory_offset, len);
 
     // Safety: set_data is unsafe function and memory_resize ensures us that it is safe to call it
@@ -118,7 +118,7 @@ pub fn returndatasize<SPEC: Spec>(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::BASE);
     // EIP-211: New opcodes: RETURNDATASIZE and RETURNDATACOPY
     check!(SPEC::enabled(BYZANTIUM));
-    let size = U256::from(interp.return_data_buffer.len());
+    let size = Uint::from(interp.return_data_buffer.len());
     push!(interp, size);
     Return::Continue
 }
@@ -128,9 +128,9 @@ pub fn returndatacopy<SPEC: Spec>(interp: &mut Interpreter) -> Return {
     check!(SPEC::enabled(BYZANTIUM));
     pop!(interp, memory_offset, offset, len);
     gas_or_fail!(interp, gas::verylowcopy_cost(len));
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
-    let memory_offset = as_usize_or_fail!(memory_offset, Return::OutOfGas);
-    let data_offset = as_usize_saturated!(offset);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
+    let memory_offset = as_usize_or_fail_ruint!(memory_offset, Return::OutOfGas);
+    let data_offset = as_usize_saturated_ruint!(offset);
     memory_resize!(interp, memory_offset, len);
     let (data_end, overflow) = data_offset.overflowing_add(len);
     if overflow || data_end > interp.return_data_buffer.len() {
@@ -145,6 +145,6 @@ pub fn returndatacopy<SPEC: Spec>(interp: &mut Interpreter) -> Return {
 
 pub fn gas(interp: &mut Interpreter) -> Return {
     // gas!(interp, gas::BASE);
-    push!(interp, U256::from(interp.gas.remaining()));
+    push!(interp, Uint::from(interp.gas.remaining()));
     interp.add_next_gas_block(interp.program_counter() - 1)
 }

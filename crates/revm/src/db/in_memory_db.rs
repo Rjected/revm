@@ -7,6 +7,7 @@ use alloc::{
 };
 use hashbrown::{hash_map::Entry, HashMap as Map};
 use primitive_types::{H160, H256, U256};
+use ruint::Uint;
 use sha3::{Digest, Keccak256};
 
 pub type InMemoryDB = CacheDB<EmptyDB>;
@@ -301,7 +302,7 @@ impl Database for BenchmarkDB {
         if address == H160::zero() {
             return AccountInfo {
                 nonce: 1,
-                balance: U256::from(10000000),
+                balance: Uint::from(10000000),
                 code: Some(self.0.clone()),
                 code_hash: self.1,
             };

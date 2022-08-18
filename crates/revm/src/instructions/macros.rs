@@ -78,17 +78,8 @@ macro_rules! pop_address {
         if $interp.stack.len() < 1 {
             return Return::StackUnderflow;
         }
-        let mut temp = H256::zero();
         // Safety: Length is checked above.
-        let $x1: H160 = {
-            unsafe {
-                $interp
-                    .stack
-                    .pop_unsafe()
-                    .to_big_endian(temp.as_bytes_mut())
-            };
-            temp.into()
-        };
+        let $x1: H160 = { unsafe { $interp.stack.pop_unsafe().to_be_bytes().into() } };
     };
     ( $interp:expr, $x1:ident, $x2:ident) => {
         if $interp.stack.len() < 2 {
@@ -97,24 +88,12 @@ macro_rules! pop_address {
         let mut temp = H256::zero();
         $x1: H160 = {
             // Safety: Length is checked above.
-            unsafe {
-                $interp
-                    .stack
-                    .pop_unsafe()
-                    .to_big_endian(temp.as_bytes_mut())
-            };
-            temp.into()
+            unsafe { $interp.stack.pop_unsafe().to_be_bytes().into() }
         };
         $x2: H160 = {
             temp = H256::zero();
             // Safety: Length is checked above.
-            unsafe {
-                $interp
-                    .stack
-                    .pop_unsafe()
-                    .to_big_endian(temp.as_bytes_mut())
-            };
-            temp.into();
+            unsafe { $interp.stack.pop_unsafe().to_be_bytes().into() }
         };
     };
 }
@@ -212,7 +191,7 @@ macro_rules! op2_u256_bool_ref {
         // gas!($interp, $gas);
         pop_top!($interp, op1, op2);
         let ret = op1.$op(&op2);
-        *op2 = if ret { U256::one() } else { U256::zero() };
+        *op2 = if ret { Uint::from(1) } else { Uint::ZERO };
 
         Return::Continue
     }};
@@ -286,20 +265,38 @@ macro_rules! as_usize_saturated {
     }};
 }
 
-macro_rules! as_usize_or_fail {
+macro_rules! as_usize_saturated_ruint {
     ( $v:expr ) => {{
-        if $v.0[1] != 0 || $v.0[2] != 0 || $v.0[3] != 0 {
+        // TODO: little endian may be different here?
+        let limbs = $v.as_limbs();
+        if limbs[1] != 0 || limbs[2] != 0 || limbs[3] != 0 {
+            return Return::OutOfGas;
+        } else {
+            limbs[0] as usize
+        }
+    }};
+}
+
+/// this macro first checks whether or not the uint256 can fit in a u64, then returns the uint256
+/// as a usize. If no revert reason is specified, it will return [`Return::OutOfGas`], otherwise it
+/// will return the revert reason given.
+macro_rules! as_usize_or_fail_ruint {
+    ( $v:expr ) => {{
+        // TODO: little endian may be different here?
+        let limbs = $v.as_limbs();
+        if limbs[1] != 0 || limbs[2] != 0 || limbs[3] != 0 {
             return Return::OutOfGas;
         }
 
-        $v.0[0] as usize
+        limbs[0] as usize
     }};
 
     ( $v:expr, $reason:expr ) => {{
-        if $v.0[1] != 0 || $v.0[2] != 0 || $v.0[3] != 0 {
+        let limbs = $v.as_limbs();
+        if limbs[1] != 0 || limbs[2] != 0 || limbs[3] != 0 {
             return $reason;
         }
 
-        $v.0[0] as usize
+        limbs[0] as usize
     }};
 }

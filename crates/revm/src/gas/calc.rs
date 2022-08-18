@@ -1,6 +1,7 @@
 use super::constants::*;
 use crate::{models::SelfDestructResult, Spec, SpecId::*};
 use primitive_types::U256;
+use ruint::Uint;
 
 #[allow(clippy::collapsible_else_if)]
 pub fn sstore_refund<SPEC: Spec>(original: U256, current: U256, new: U256) -> i64 {
@@ -63,66 +64,74 @@ pub fn create2_cost(len: usize) -> Option<u64> {
     Some(gas)
 }
 
-fn log2floor(value: U256) -> u64 {
-    assert!(!value.is_zero());
-    let mut l: u64 = 256;
-    for i in 0..4 {
-        let i = 3 - i;
-        if value.0[i] == 0u64 {
-            l -= 64;
-        } else {
-            l -= value.0[i].leading_zeros() as u64;
-            if l == 0 {
-                return l;
-            } else {
-                return l - 1;
-            }
-        }
-    }
-    l
+fn log2floor(value: Uint<256, 4>) -> u64 {
+    // this is ensured because log2floor is only used in exp_cost, which exits if the `power` is
+    // zero. This means our `value` will never be zero.
+    assert!(value != Uint::ZERO);
+    value.log2() as u64
+    // let mut l: u64 = 256;
+    // for i in 0..4 {
+    //     let i = 3 - i;
+    //     if value.0[i] == 0u64 {
+    //         l -= 64;
+    //     } else {
+    //         l -= value.0[i].leading_zeros() as u64;
+    //         // l is only zero if all four limbs are zero, but the last word (if it is zero)
+    //         // would have been handled above. so we should just return l - 1 here?
+    //         if l == 0 {
+    //             return l;
+    //         } else {
+    //             return l - 1;
+    //         }
+    //     }
+    // }
+    // l
 }
 
-pub fn exp_cost<SPEC: Spec>(power: U256) -> Option<u64> {
-    if power.is_zero() {
+pub fn exp_cost<SPEC: Spec>(power: Uint<256, 4>) -> Option<u64> {
+    if power == Uint::ZERO {
         Some(EXP)
     } else {
-        let gas_byte = U256::from(if SPEC::enabled(SPURIOUS_DRAGON) {
+        let gas_byte = Uint::from(if SPEC::enabled(SPURIOUS_DRAGON) {
             50
         } else {
             10
         }); // EIP-160: EXP cost increase
-        let gas = U256::from(EXP)
-            .checked_add(gas_byte.checked_mul(U256::from(log2floor(power) / 8 + 1))?)?;
+        let gas: Uint<64, 1> = Uint::from(EXP)
+            .checked_add(gas_byte.checked_mul(Uint::from(log2floor(power) / 8 + 1))?)?;
 
-        if gas > U256::from(u64::MAX) {
+        if gas > Uint::from(u64::MAX) {
             return None;
         }
 
-        Some(gas.as_u64())
+        // TODO: is there an easier or more efficient way to convert Uint to u64?
+        Some(u64::from_le_bytes(gas.to_le_bytes()))
     }
 }
 
-pub fn verylowcopy_cost(len: U256) -> Option<u64> {
-    let wordd = len / U256::from(32);
-    let wordr = len % U256::from(32);
+pub fn verylowcopy_cost(len: Uint<256, 4>) -> Option<u64> {
+    let wordd = len / Uint::from(32);
+    let wordr = len % Uint::from(32);
 
-    let gas =
-        U256::from(VERYLOW).checked_add(U256::from(COPY).checked_mul(if wordr.is_zero() {
+    let gas = Uint::from(VERYLOW).checked_add(Uint::from(COPY).checked_mul(
+        if wordr == Uint::ZERO {
             wordd
         } else {
-            wordd + U256::one()
-        })?)?;
+            wordd + Uint::from(1)
+        },
+    )?)?;
 
-    if gas > U256::from(u64::MAX) {
+    if gas > Uint::from(u64::MAX) {
         return None;
     }
 
-    Some(gas.as_u64())
+    // TODO: is there an easier or more efficient way to convert Uint to u64?
+    Some(u64::from_le_bytes(gas.to_le_bytes()))
 }
 
-pub fn extcodecopy_cost<SPEC: Spec>(len: U256, is_cold: bool) -> Option<u64> {
-    let wordd = len / U256::from(32);
-    let wordr = len % U256::from(32);
+pub fn extcodecopy_cost<SPEC: Spec>(len: Uint<256, 4>, is_cold: bool) -> Option<u64> {
+    let wordd = len / Uint::from(32);
+    let wordr = len % Uint::from(32);
     let base_gas: u64 = if SPEC::enabled(BERLIN) {
         if is_cold {
             ACCOUNT_ACCESS_COLD
@@ -134,18 +143,20 @@ pub fn extcodecopy_cost<SPEC: Spec>(len: U256, is_cold: bool) -> Option<u64> {
     } else {
         20
     };
-    let gas =
-        U256::from(base_gas).checked_add(U256::from(COPY).checked_mul(if wordr.is_zero() {
+    let gas = Uint::from(base_gas).checked_add(Uint::from(COPY).checked_mul(
+        if wordr == Uint::ZERO {
             wordd
         } else {
-            wordd + U256::one()
-        })?)?;
+            wordd + Uint::from(1)
+        },
+    )?)?;
 
-    if gas > U256::from(u64::MAX) {
+    if gas > Uint::from(u64::MAX) {
         return None;
     }
 
-    Some(gas.as_u64())
+    // TODO: is there an easier or more efficient way to convert Uint to u64?
+    Some(u64::from_le_bytes(gas.to_le_bytes()))
 }
 
 pub fn account_access_gas<SPEC: Spec>(is_cold: bool) -> u64 {
@@ -174,22 +185,24 @@ pub fn log_cost(n: u8, len: U256) -> Option<u64> {
     Some(gas.as_u64())
 }
 
-pub fn sha3_cost(len: U256) -> Option<u64> {
-    let wordd = len / U256::from(32);
-    let wordr = len % U256::from(32);
+pub fn sha3_cost(len: Uint<256, 4>) -> Option<u64> {
+    let wordd = len / Uint::from(32);
+    let wordr = len % Uint::from(32);
 
-    let gas =
-        U256::from(SHA3).checked_add(U256::from(SHA3WORD).checked_mul(if wordr.is_zero() {
+    let gas = Uint::from(SHA3).checked_add(Uint::from(SHA3WORD).checked_mul(
+        if wordr == Uint::ZERO {
             wordd
         } else {
-            wordd + U256::one()
-        })?)?;
+            wordd + Uint::from(1)
+        },
+    )?)?;
 
-    if gas > U256::from(u64::MAX) {
+    if gas > Uint::from(u64::MAX) {
         return None;
     }
 
-    Some(gas.as_u64())
+    // TODO: is there an easier or more efficient way to convert Uint to u64?
+    Some(u64::from_le_bytes(gas.to_le_bytes()))
 }
 
 pub fn sload_cost<SPEC: Spec>(is_cold: bool) -> u64 {

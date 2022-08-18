@@ -5,6 +5,7 @@ use crate::{
 use bytes::Bytes;
 use core::cmp::min;
 use primitive_types::{H160, H256, U256};
+use ruint::Uint;
 
 pub fn balance<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) -> Return {
     pop_address!(interp, address);
@@ -20,7 +21,7 @@ pub fn balance<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) -> R
             20
         }
     );
-    push!(interp, balance);
+    push!(interp, Uint::from(balance));
 
     Return::Continue
 }
@@ -31,7 +32,7 @@ pub fn selfbalance<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) 
     check!(SPEC::enabled(ISTANBUL));
 
     let (balance, _) = host.balance(interp.contract.address);
-    push!(interp, balance);
+    push!(interp, Uint::from(balance));
 
     Return::Continue
 }
@@ -42,7 +43,7 @@ pub fn extcodesize<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) 
     let (code, is_cold) = host.code(address);
     gas!(interp, gas::account_access_gas::<SPEC>(is_cold));
 
-    push!(interp, U256::from(code.len()));
+    push!(interp, Uint::from(code.len()));
 
     Return::Continue
 }
@@ -71,12 +72,12 @@ pub fn extcodecopy<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) 
 
     let (code, is_cold) = host.code(address);
     gas_or_fail!(interp, gas::extcodecopy_cost::<SPEC>(len_u256, is_cold));
-    let len = as_usize_or_fail!(len_u256, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len_u256, Return::OutOfGas);
     if len == 0 {
         return Return::Continue;
     }
-    let memory_offset = as_usize_or_fail!(memory_offset, Return::OutOfGas);
-    let code_offset = min(as_usize_saturated!(code_offset), code.len());
+    let memory_offset = as_usize_or_fail_ruint!(memory_offset, Return::OutOfGas);
+    let code_offset = min(as_usize_saturated_ruint!(code_offset), code.len());
     memory_resize!(interp, memory_offset, len);
 
     // Safety: set_data is unsafe function and memory_resize ensures us that it is safe to call it
@@ -90,23 +91,23 @@ pub fn blockhash<H: Host>(interp: &mut Interpreter, host: &mut H) -> Return {
     // gas!(interp, gas::BLOCKHASH);
     pop_top!(interp, number);
 
-    if let Some(diff) = host.env().block.number.checked_sub(*number) {
+    if let Some(diff) = host.env().block.number.checked_sub(U256::from(*number)) {
         let diff = as_usize_saturated!(diff);
         // blockhash should push zero if number is same as current block number.
         if diff <= 256 && diff != 0 {
-            *number = U256::from_big_endian(host.block_hash(*number).as_ref());
+            *number = Uint::from_be_bytes(host.block_hash(U256::from(*number)).0);
             return Return::Continue;
         }
     }
-    *number = U256::zero();
+    *number = Uint::ZERO;
     Return::Continue
 }
 
 pub fn sload<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) -> Return {
     pop!(interp, index);
-    let (value, is_cold) = host.sload(interp.contract.address, index);
+    let (value, is_cold) = host.sload(interp.contract.address, U256::from(index));
     gas!(interp, gas::sload_cost::<SPEC>(is_cold));
-    push!(interp, value);
+    push!(interp, value.into());
     Return::Continue
 }
 
@@ -114,7 +115,8 @@ pub fn sstore<H: Host, SPEC: Spec>(interp: &mut Interpreter, host: &mut H) -> Re
     check!(!SPEC::IS_STATIC_CALL);
 
     pop!(interp, index, value);
-    let (original, old, new, is_cold) = host.sstore(interp.contract.address, index, value);
+    let (original, old, new, is_cold) =
+        host.sstore(interp.contract.address, index.into(), value.into());
     gas_or_fail!(interp, {
         let remaining_gas = interp.gas.remaining();
         gas::sstore_cost::<SPEC>(original, old, new, remaining_gas, is_cold)
@@ -127,12 +129,12 @@ pub fn log<H: Host, SPEC: Spec>(interp: &mut Interpreter, n: u8, host: &mut H) -
     check!(!SPEC::IS_STATIC_CALL);
 
     pop!(interp, offset, len);
-    gas_or_fail!(interp, gas::log_cost(n, len));
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    gas_or_fail!(interp, gas::log_cost(n, len.into()));
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
     let data = if len == 0 {
         Bytes::new()
     } else {
-        let offset = as_usize_or_fail!(offset, Return::OutOfGas);
+        let offset = as_usize_or_fail_ruint!(offset, Return::OutOfGas);
         memory_resize!(interp, offset, len);
         Bytes::copy_from_slice(interp.memory.get_slice(offset, len))
     };
@@ -143,10 +145,11 @@ pub fn log<H: Host, SPEC: Spec>(interp: &mut Interpreter, n: u8, host: &mut H) -
 
     let mut topics = Vec::with_capacity(n);
     for _ in 0..(n) {
-        let mut t = H256::zero();
         // Safety: stack bounds already checked few lines above
-        unsafe { interp.stack.pop_unsafe().to_big_endian(t.as_bytes_mut()) };
-        topics.push(t);
+        unsafe {
+            let topic = interp.stack.pop_unsafe().to_be_bytes();
+            topics.push(topic.into());
+        };
     }
 
     host.log(interp.contract.address, topics, data);
@@ -191,12 +194,12 @@ pub fn create<H: Host, SPEC: Spec>(
     interp.return_data_buffer = Bytes::new();
 
     pop!(interp, value, code_offset, len);
-    let len = as_usize_or_fail!(len, Return::OutOfGas);
+    let len = as_usize_or_fail_ruint!(len, Return::OutOfGas);
 
     let code = if len == 0 {
         Bytes::new()
     } else {
-        let code_offset = as_usize_or_fail!(code_offset, Return::OutOfGas);
+        let code_offset = as_usize_or_fail_ruint!(code_offset, Return::OutOfGas);
         memory_resize!(interp, code_offset, len);
         Bytes::copy_from_slice(interp.memory.get_slice(code_offset, len))
     };
@@ -204,7 +207,7 @@ pub fn create<H: Host, SPEC: Spec>(
     let scheme = if is_create2 {
         pop!(interp, salt);
         gas_or_fail!(interp, gas::create2_cost(len));
-        CreateScheme::Create2 { salt }
+        CreateScheme::Create2 { salt: salt.into() }
     } else {
         gas!(interp, gas::CREATE);
         CreateScheme::Create
@@ -217,7 +220,7 @@ pub fn create<H: Host, SPEC: Spec>(
     let mut create_input = CreateInputs {
         caller: interp.contract.address,
         scheme,
-        value,
+        value: value.into(),
         init_code: code,
         gas_limit,
     };
@@ -252,10 +255,10 @@ pub fn call<H: Host, SPEC: Spec>(
 
     pop!(interp, local_gas_limit);
     pop_address!(interp, to);
-    let local_gas_limit = if local_gas_limit > U256::from(u64::MAX) {
+    let local_gas_limit = if local_gas_limit > Uint::from(u64::MAX) {
         u64::MAX
     } else {
-        local_gas_limit.as_u64()
+        u64::from_le_bytes(local_gas_limit.to_le_bytes())
     };
 
     let value = match scheme {
@@ -265,28 +268,28 @@ pub fn call<H: Host, SPEC: Spec>(
         }
         CallScheme::Call => {
             pop!(interp, value);
-            if SPEC::IS_STATIC_CALL && !value.is_zero() {
+            if SPEC::IS_STATIC_CALL && value != Uint::ZERO {
                 return Return::CallNotAllowedInsideStatic;
             }
             value
         }
-        CallScheme::DelegateCall | CallScheme::StaticCall => U256::zero(),
+        CallScheme::DelegateCall | CallScheme::StaticCall => Uint::ZERO,
     };
 
     pop!(interp, in_offset, in_len, out_offset, out_len);
 
-    let in_len = as_usize_or_fail!(in_len, Return::OutOfGas);
+    let in_len = as_usize_or_fail_ruint!(in_len, Return::OutOfGas);
     let input = if in_len != 0 {
-        let in_offset = as_usize_or_fail!(in_offset, Return::OutOfGas);
+        let in_offset = as_usize_or_fail_ruint!(in_offset, Return::OutOfGas);
         memory_resize!(interp, in_offset, in_len);
         Bytes::copy_from_slice(interp.memory.get_slice(in_offset, in_len))
     } else {
         Bytes::new()
     };
 
-    let out_len = as_usize_or_fail!(out_len, Return::OutOfGas);
+    let out_len = as_usize_or_fail_ruint!(out_len, Return::OutOfGas);
     let out_offset = if out_len != 0 {
-        let out_offset = as_usize_or_fail!(out_offset, Return::OutOfGas);
+        let out_offset = as_usize_or_fail_ruint!(out_offset, Return::OutOfGas);
         memory_resize!(interp, out_offset, out_len);
         out_offset
     } else {
@@ -298,14 +301,14 @@ pub fn call<H: Host, SPEC: Spec>(
             address: to,
             caller: interp.contract.address,
             code_address: to,
-            apparent_value: value,
+            apparent_value: value.into(),
             scheme,
         },
         CallScheme::CallCode => CallContext {
             address: interp.contract.address,
             caller: interp.contract.address,
             code_address: to,
-            apparent_value: value,
+            apparent_value: value.into(),
             scheme,
         },
         CallScheme::DelegateCall => CallContext {
@@ -321,13 +324,13 @@ pub fn call<H: Host, SPEC: Spec>(
         Transfer {
             source: interp.contract.address,
             target: to,
-            value,
+            value: value.into(),
         }
     } else if scheme == CallScheme::CallCode {
         Transfer {
             source: interp.contract.address,
             target: interp.contract.address,
-            value,
+            value: value.into(),
         }
     } else {
         //this is dummy send for StaticCall and DelegateCall, it should do nothing and dont touch anything.
@@ -345,7 +348,7 @@ pub fn call<H: Host, SPEC: Spec>(
     gas!(
         interp,
         gas::call_cost::<SPEC>(
-            value,
+            U256::from(value),
             is_new,
             is_cold,
             matches!(scheme, CallScheme::Call | CallScheme::CallCode),
@@ -388,16 +391,16 @@ pub fn call<H: Host, SPEC: Spec>(
             interp
                 .memory
                 .set(out_offset, &interp.return_data_buffer[..target_len]);
-            push!(interp, U256::one());
+            push!(interp, Uint::from(1));
         }
         return_revert!() => {
-            push!(interp, U256::zero());
+            push!(interp, Uint::ZERO);
             interp
                 .memory
                 .set(out_offset, &interp.return_data_buffer[..target_len]);
         }
         _ => {
-            push!(interp, U256::zero());
+            push!(interp, Uint::ZERO);
         }
     }
     interp.add_next_gas_block(interp.program_counter() - 1)

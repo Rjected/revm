@@ -15,7 +15,7 @@ pub use opcode::{OpCode, OPCODE_JUMPMAP};
 
 use crate::{interpreter::Interpreter, CallScheme, Host, Spec, SpecId::*};
 use core::ops::{BitAnd, BitOr, BitXor};
-use primitive_types::U256;
+use ruint::Uint;
 
 #[macro_export]
 macro_rules! return_ok {
@@ -51,6 +51,7 @@ pub enum Return {
     OpcodeNotFound,
     CallNotAllowedInsideStatic,
     InvalidOpcode,
+    ///
     InvalidJump,
     InvalidMemoryRange,
     NotActivated,

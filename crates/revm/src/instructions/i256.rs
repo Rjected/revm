@@ -1,5 +1,5 @@
 use core::cmp::Ordering;
-use primitive_types::U256;
+use ruint::Uint;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Sign {
@@ -8,14 +8,14 @@ pub enum Sign {
     Zero,
 }
 
-pub const SIGN_BIT_MASK: U256 = U256([
+pub const SIGN_BIT_MASK: Uint<256, 4> = Uint::from_limbs([
     0xffffffffffffffff,
     0xffffffffffffffff,
     0xffffffffffffffff,
     FLIPH_BITMASK_U64,
 ]);
 
-pub const MIN_NEGATIVE_VALUE: U256 = U256([
+pub const MIN_NEGATIVE_VALUE: Uint<256, 4> = Uint::from_limbs([
     0x0000000000000000,
     0x0000000000000000,
     0x0000000000000000,
@@ -25,12 +25,12 @@ pub const MIN_NEGATIVE_VALUE: U256 = U256([
 const SIGN_BITMASK_U64: u64 = 0x8000000000000000;
 const FLIPH_BITMASK_U64: u64 = 0x7FFFFFFFFFFFFFFF;
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct I256(pub Sign, pub U256);
+pub struct I256(pub Sign, pub Uint<256, 4>);
 
 #[inline(always)]
-pub fn i256_sign<const DO_TWO_COMPL: bool>(val: &mut U256) -> Sign {
-    if val.0[3] & SIGN_BITMASK_U64 == 0 {
-        if val.is_zero() {
+pub fn i256_sign<const DO_TWO_COMPL: bool>(val: &mut Uint<256, 4>) -> Sign {
+    if val.as_limbs()[3] & SIGN_BITMASK_U64 == 0 {
+        if *val == Uint::ZERO {
             Sign::Zero
         } else {
             Sign::Plus
@@ -44,21 +44,24 @@ pub fn i256_sign<const DO_TWO_COMPL: bool>(val: &mut U256) -> Sign {
 }
 
 #[inline(always)]
-fn u256_remove_sign(val: &mut U256) {
-    val.0[3] &= FLIPH_BITMASK_U64;
+fn u256_remove_sign(val: &mut Uint<256, 4>) {
+    // This is safe because we're accessing limb index 3, which is the last limb of a Uint<256, 4>
+    unsafe {
+        val.as_limbs_mut()[3] &= FLIPH_BITMASK_U64;
+    }
 }
 
 #[inline(always)]
-pub fn two_compl_mut(op: &mut U256) {
+pub fn two_compl_mut(op: &mut Uint<256, 4>) {
     *op = two_compl(*op);
 }
 
-pub fn two_compl(op: U256) -> U256 {
-    !op + U256::one()
+pub fn two_compl(op: Uint<256, 4>) -> Uint<256, 4> {
+    !op + Uint::from(1u64)
 }
 
 #[inline(always)]
-pub fn i256_cmp(mut first: U256, mut second: U256) -> Ordering {
+pub fn i256_cmp(mut first: Uint<256, 4>, mut second: Uint<256, 4>) -> Ordering {
     let first_sign = i256_sign::<false>(&mut first);
     let second_sign = i256_sign::<false>(&mut second);
     match (first_sign, second_sign) {
@@ -75,24 +78,24 @@ pub fn i256_cmp(mut first: U256, mut second: U256) -> Ordering {
 }
 
 #[inline(always)]
-pub fn i256_div(mut first: U256, mut second: U256) -> U256 {
+pub fn i256_div(mut first: Uint<256, 4>, mut second: Uint<256, 4>) -> Uint<256, 4> {
     let second_sign = i256_sign::<true>(&mut second);
     if second_sign == Sign::Zero {
-        return U256::zero();
+        return Uint::ZERO;
     }
     let first_sign = i256_sign::<true>(&mut first);
-    if first_sign == Sign::Minus && first == MIN_NEGATIVE_VALUE && second == U256::one() {
+    if first_sign == Sign::Minus && first == MIN_NEGATIVE_VALUE && second == Uint::from(1) {
         return two_compl(MIN_NEGATIVE_VALUE);
     }
 
     //let mut d = first / second;
-    let mut d = div_u256::div_mod(first, second).0;
+    let mut d = first.div_rem(second).0;
 
     u256_remove_sign(&mut d);
     //set sign bit to zero
 
-    if d.is_zero() {
-        return U256::zero();
+    if d == Uint::ZERO {
+        return Uint::ZERO;
     }
 
     match (first_sign, second_sign) {
@@ -109,17 +112,17 @@ pub fn i256_div(mut first: U256, mut second: U256) -> U256 {
 }
 
 #[inline(always)]
-pub fn i256_mod(mut first: U256, mut second: U256) -> U256 {
+pub fn i256_mod(mut first: Uint<256, 4>, mut second: Uint<256, 4>) -> Uint<256, 4> {
     let first_sign = i256_sign::<true>(&mut first);
     if first_sign == Sign::Zero {
-        return U256::zero();
+        return Uint::ZERO;
     }
 
     let _ = i256_sign::<true>(&mut second);
     let mut r = first % second;
     u256_remove_sign(&mut r);
-    if r.is_zero() {
-        return U256::zero();
+    if r == Uint::ZERO {
+        return Uint::ZERO;
     }
     if first_sign == Sign::Minus {
         two_compl(r)
@@ -129,7 +132,7 @@ pub fn i256_mod(mut first: U256, mut second: U256) -> U256 {
 }
 
 pub mod div_u256 {
-    use super::*;
+    use primitive_types::U256;
 
     const WORD_BITS: usize = 64;
     /// Returns a pair `(self / other, self % other)`.
@@ -393,26 +396,54 @@ pub mod div_u256 {
 mod tests {
     use super::*;
     use core::num::Wrapping;
-    use primitive_types::U256;
+    // use primitive_types::U256;
 
+    // #[test]
+    // fn div_i256() {
+    //     // Sanity checks based on i8. Notice that we need to use `Wrapping` here because
+    //     // Rust will prevent the overflow by default whereas the EVM does not.
+    //     assert_eq!(Wrapping(i8::MIN) / Wrapping(-1), Wrapping(i8::MIN));
+    //     assert_eq!(i8::MAX / -1, -i8::MAX);
+
+    //     // Now the same calculations based on i256
+    //     let one = U256::from(1);
+    //     let one_hundred = U256::from(100);
+    //     let fifty = U256::from(50);
+    //     let _fifty_sign = Sign::Plus;
+    //     let two = U256::from(2);
+    //     let neg_one_hundred = U256::from(100);
+    //     let _neg_one_hundred_sign = Sign::Minus;
+    //     let minus_one = U256::from(1);
+    //     let max_value = U256::from(2).pow(U256::from(255)) - 1;
+    //     let neg_max_value = U256::from(2).pow(U256::from(255)) - 1;
+
+    //     assert_eq!(i256_div(MIN_NEGATIVE_VALUE, minus_one), MIN_NEGATIVE_VALUE);
+    //     assert_eq!(i256_div(MIN_NEGATIVE_VALUE, one), MIN_NEGATIVE_VALUE);
+    //     assert_eq!(i256_div(max_value, one), max_value);
+    //     assert_eq!(i256_div(max_value, minus_one), neg_max_value);
+    //     assert_eq!(i256_div(one_hundred, minus_one), neg_one_hundred);
+    //     assert_eq!(i256_div(one_hundred, two), fifty);
+    // }
+
+    // the same as above, but using a Uint<256, 4>
     #[test]
-    fn div_i256() {
+    fn div_i256_ruint() {
         // Sanity checks based on i8. Notice that we need to use `Wrapping` here because
         // Rust will prevent the overflow by default whereas the EVM does not.
         assert_eq!(Wrapping(i8::MIN) / Wrapping(-1), Wrapping(i8::MIN));
         assert_eq!(i8::MAX / -1, -i8::MAX);
 
         // Now the same calculations based on i256
-        let one = U256::from(1);
-        let one_hundred = U256::from(100);
-        let fifty = U256::from(50);
+        let one = Uint::from(1);
+        let one_hundred = Uint::from(100);
+        let fifty = Uint::from(50);
         let _fifty_sign = Sign::Plus;
-        let two = U256::from(2);
-        let neg_one_hundred = U256::from(100);
+        let two = Uint::from(2);
+        let neg_one_hundred = Uint::from(100);
         let _neg_one_hundred_sign = Sign::Minus;
-        let minus_one = U256::from(1);
-        let max_value = U256::from(2).pow(U256::from(255)) - 1;
-        let neg_max_value = U256::from(2).pow(U256::from(255)) - 1;
+        let minus_one = Uint::from(1);
+        let max_value = Uint::MAX;
+        let neg_max_value = Uint::MAX;
 
         assert_eq!(i256_div(MIN_NEGATIVE_VALUE, minus_one), MIN_NEGATIVE_VALUE);
         assert_eq!(i256_div(MIN_NEGATIVE_VALUE, one), MIN_NEGATIVE_VALUE);
