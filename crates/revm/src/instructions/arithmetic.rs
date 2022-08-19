@@ -110,7 +110,7 @@ pub fn signextend(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
         let op1_low = op1.as_limbs()[0] as u32;
         let bit_index = (8 * op1_low + 7) as usize;
         let bit = op2.bit(bit_index);
-        let mask = Uint::from((1 << bit_index) - 1);
+        let mask = (Uint::from(1) << bit_index) - Uint::from(1);
         if bit {
             op2 | !mask
         } else {

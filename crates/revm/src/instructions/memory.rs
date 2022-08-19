@@ -24,7 +24,7 @@ pub fn mstore(interp: &mut Interpreter) -> Return {
     pop!(interp, index, value);
     let index = as_usize_or_fail_ruint!(index, Return::OutOfGas);
     memory_resize!(interp, index, 32);
-    interp.memory.set_u256(index, value.into());
+    interp.memory.set_u256(index, value);
     Return::Continue
 }
 
@@ -33,6 +33,7 @@ pub fn mstore8(interp: &mut Interpreter) -> Return {
     pop!(interp, index, value);
     let index = as_usize_or_fail_ruint!(index, Return::OutOfGas);
     memory_resize!(interp, index, 1);
+    // TODO: check if we can replace low_u32 with something ruint supports
     let value = (U256::from(value).low_u32() & 0xff) as u8;
     // Safety: we resized our memory two lines above.
     unsafe { interp.memory.set_byte(index, value) }
