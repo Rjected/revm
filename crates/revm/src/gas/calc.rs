@@ -104,8 +104,8 @@ pub fn exp_cost<SPEC: Spec>(power: Uint<256, 4>) -> Option<u64> {
             return None;
         }
 
-        // TODO: is there an easier or more efficient way to convert Uint to u64?
-        Some(u64::from_le_bytes(gas.to_le_bytes()))
+        // since we know gas is < u64::MAX, let's take the first limb
+        Some(gas.as_limbs()[0])
     }
 }
 
@@ -125,8 +125,8 @@ pub fn verylowcopy_cost(len: Uint<256, 4>) -> Option<u64> {
         return None;
     }
 
-    // TODO: is there an easier or more efficient way to convert Uint to u64?
-    Some(u64::from_le_bytes(gas.to_le_bytes()))
+    // since we know gas is < u64::MAX, let's take the first limb
+    Some(gas.as_limbs()[0])
 }
 
 pub fn extcodecopy_cost<SPEC: Spec>(len: Uint<256, 4>, is_cold: bool) -> Option<u64> {
@@ -155,8 +155,8 @@ pub fn extcodecopy_cost<SPEC: Spec>(len: Uint<256, 4>, is_cold: bool) -> Option<
         return None;
     }
 
-    // TODO: is there an easier or more efficient way to convert Uint to u64?
-    Some(u64::from_le_bytes(gas.to_le_bytes()))
+    // since we know gas is < u64::MAX, let's take the first limb
+    Some(gas.as_limbs()[0])
 }
 
 pub fn account_access_gas<SPEC: Spec>(is_cold: bool) -> u64 {
@@ -201,8 +201,9 @@ pub fn sha3_cost(len: Uint<256, 4>) -> Option<u64> {
         return None;
     }
 
-    // TODO: is there an easier or more efficient way to convert Uint to u64?
-    Some(u64::from_le_bytes(gas.to_le_bytes()))
+
+    // since we know gas is < u64::MAX, let's take the first limb
+    Some(gas.as_limbs()[0])
 }
 
 pub fn sload_cost<SPEC: Spec>(is_cold: bool) -> u64 {

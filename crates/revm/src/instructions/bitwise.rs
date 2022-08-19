@@ -1,5 +1,4 @@
 use core::cmp::Ordering;
-
 use super::i256::{i256_cmp, i256_sign, two_compl, Sign};
 use ruint::Uint;
 
@@ -51,8 +50,8 @@ pub fn shl(shift: Uint<256, 4>, value: Uint<256, 4>) -> Uint<256, 4> {
     if value == Uint::ZERO || shift >= Uint::from(256) {
         Uint::ZERO
     } else {
-        // TODO: is there an easier or faster way to convert from a (known < 256) Uint<256, 4> into a u64?
-        let shift: u64 = u64::from_le_bytes(shift.to_le_bytes());
+        // we know the shift is not larger than 256, so the first byte is sufficient
+        let shift = shift.as_le_slice()[0];
         value << shift as usize
     }
 }
@@ -61,8 +60,8 @@ pub fn shr(shift: Uint<256, 4>, value: Uint<256, 4>) -> Uint<256, 4> {
     if value == Uint::ZERO || shift >= Uint::from(256) {
         Uint::ZERO
     } else {
-        // TODO: is there an easier or faster way to convert from a (known < 256) Uint<256, 4> into a u64?
-        let shift: u64 = u64::from_le_bytes(shift.to_le_bytes());
+        // we know the shift is not larger than 256, so the first byte is sufficient
+        let shift = shift.as_le_slice()[0];
         value >> shift as usize
     }
 }
@@ -78,8 +77,8 @@ pub fn sar(shift: Uint<256, 4>, mut value: Uint<256, 4>) -> Uint<256, 4> {
             Sign::Minus => two_compl(Uint::from(1)),
         }
     } else {
-        // TODO: is there an easier or faster way to convert from a (known < 256) Uint<256, 4> into a u64?
-        let shift: u64 = u64::from_le_bytes(shift.to_le_bytes());
+        // we know the shift is not larger than 256, so the first byte is sufficient
+        let shift = shift.as_le_slice()[0];
 
         match value_sign {
             Sign::Plus | Sign::Zero => value >> shift as usize,
