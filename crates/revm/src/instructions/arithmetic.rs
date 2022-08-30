@@ -3,14 +3,20 @@ use crate::{gas, Interpreter, Return, Spec};
 use super::i256::{i256_div, i256_mod};
 use core::{convert::TryInto, ops::Rem};
 use primitive_types::{U256, U512};
+use ruint::Uint;
 
 pub fn div(op1: U256, op2: U256) -> U256 {
     if op2.is_zero() {
         U256::zero()
     } else {
         //op1 / op2
-        super::i256::div_u256::div_mod(op1, op2).0
+        // super::i256::div_u256::div_mod(op1, op2).0
+        fast_div_mod(op1.into(), op2.into()).into()
     }
+}
+
+fn fast_div_mod(op1: Uint<256, 4>, op2: Uint<256, 4>) -> Uint<256, 4> {
+    op1.div_rem(op2).0
 }
 
 pub fn sdiv(op1: U256, op2: U256) -> U256 {
