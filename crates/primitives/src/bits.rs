@@ -280,15 +280,16 @@ mod serialize {
             type Value = usize;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                write!(
-                    formatter,
-                    "a (both 0x-prefixed or not) hex string with {}",
-                    self.len
-                )
+                write!(formatter, "a 0x-prefixed hex string with {}", self.len)
             }
 
             fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
                 let (v, stripped) = v.strip_prefix("0x").map_or((v, false), |v| (v, true));
+
+                // enforce 0x prefix for QUANTITY compliance
+                if !stripped {
+                    return Err(E::invalid_value(de::Unexpected::Str(v), &self));
+                }
 
                 let len = v.len();
                 let is_len_valid = match self.len {
