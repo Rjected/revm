@@ -3,7 +3,7 @@ use crate::primitives::{Bytecode, Bytes, B160, U256};
 use crate::CallContext;
 use revm_primitives::{Env, TransactTo, B256};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Contract {
     /// Contracts data
     pub input: Bytes,
