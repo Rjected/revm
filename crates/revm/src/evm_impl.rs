@@ -724,6 +724,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
 
         println!("prepared call: {:?}", prepared_call);
         println!("inputs: {:?}", inputs);
+        println!("precompiles: {:?}", self.data.precompiles);
 
         let ret = if is_precompile(inputs.contract, self.data.precompiles.len()) {
             println!("calling precompile");
