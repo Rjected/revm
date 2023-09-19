@@ -217,7 +217,7 @@ pub fn to_precompile_id(spec_id: SpecId) -> revm_precompile::SpecId {
         | SpecId::MERGE
         | SpecId::SHANGHAI
         | SpecId::LATEST => revm_precompile::SpecId::BERLIN,
-        SpecId::CANCUN => SpecId::CANCUN,
+        SpecId::CANCUN => revm_precompile::SpecId::CANCUN,
     }
 }
 
