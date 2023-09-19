@@ -169,6 +169,8 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact<DB::Error>
             gas_cost = gas_cost.saturating_add(U256::from(data_fee));
         }
 
+        println!("env: {:?}", env);
+
         caller_account.info.balance = caller_account.info.balance.saturating_sub(gas_cost);
 
         // touch account so we know it is changed.
@@ -716,9 +718,14 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
             Err(e) => return e,
         };
 
+        println!("prepared call: {:?}", prepared_call);
+        println!("inputs: {:?}", inputs);
+
         let ret = if is_precompile(inputs.contract, self.data.precompiles.len()) {
+            println!("calling precompile");
             self.call_precompile(inputs, prepared_call.gas)
         } else if !prepared_call.contract.bytecode.is_empty() {
+            println!("calling contract");
             // Create interpreter and execute subcall
             let (exit_reason, interpreter) = self.run_interpreter(
                 prepared_call.contract,
@@ -746,6 +753,8 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
                 .journaled_state
                 .checkpoint_revert(prepared_call.checkpoint);
         }
+
+        println!("call result: {:?}", ret);
 
         ret
     }
