@@ -87,6 +87,7 @@ pub enum JournalEntry {
 }
 
 /// SubRoutine checkpoint that will help us to go back from this
+#[derive(Debug)]
 pub struct JournalCheckpoint {
     log_i: usize,
     journal_i: usize,
@@ -246,7 +247,7 @@ impl JournaledState {
     /// 4. Add fund to created account
     /// 5. Increment nonce of created account if SpuriousDragon is active
     /// 6. Decrease balance of caller account.
-    ///  
+    ///
     /// Safety: It is assumed that caller balance is already checked and that
     /// caller is already loaded inside evm. This is already done inside `create_inner`
     pub fn create_account_checkpoint<SPEC: Spec>(

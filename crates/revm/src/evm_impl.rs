@@ -33,6 +33,7 @@ pub struct EVMImpl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> {
     _phantomdata: PhantomData<GSPEC>,
 }
 
+#[derive(Debug)]
 struct PreparedCreate {
     gas: Gas,
     created_address: B160,
@@ -40,6 +41,7 @@ struct PreparedCreate {
     contract: Box<Contract>,
 }
 
+#[derive(Debug)]
 struct CreateResult {
     result: InstructionResult,
     created_address: Option<B160>,
@@ -47,12 +49,14 @@ struct CreateResult {
     return_value: Bytes,
 }
 
+#[derive(Debug)]
 struct PreparedCall {
     gas: Gas,
     checkpoint: JournalCheckpoint,
     contract: Box<Contract>,
 }
 
+#[derive(Debug)]
 struct CallResult {
     result: InstructionResult,
     gas: Gas,
