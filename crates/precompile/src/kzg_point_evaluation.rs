@@ -1,3 +1,6 @@
+// #[cfg(feature = "std")]
+// use std::println;
+
 use crate::{Error, Precompile, PrecompileAddress, PrecompileResult, B160};
 use c_kzg::{Bytes32, Bytes48, KzgProof, KzgSettings};
 use revm_primitives::{hex_literal::hex, Env};
@@ -48,6 +51,9 @@ fn run(input: &[u8], gas_limit: u64, env: &Env) -> PrecompileResult {
     if !verify_kzg_proof(commitment, z, y, proof, env.cfg.kzg_settings.get()) {
         return Err(Error::BlobVerifyKzgProofFailed);
     }
+
+    // #[cfg(feature = "std")]
+    // println!("KZG proof verified successfully, gas cost: {}, return value: {:?}", GAS_COST, RETURN_VALUE);
 
     // Return FIELD_ELEMENTS_PER_BLOB and BLS_MODULUS as padded 32 byte big endian values
     Ok((GAS_COST, RETURN_VALUE.to_vec()))

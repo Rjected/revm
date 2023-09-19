@@ -164,6 +164,8 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact<DB::Error>
         // EIP-4844
         if GSPEC::enabled(CANCUN) {
             let data_fee = env.calc_data_fee().expect("already checked");
+            println!("data fee: {}", data_fee);
+            println!("gas cost at this point: {}", gas_cost);
             gas_cost = gas_cost.saturating_add(U256::from(data_fee));
         }
 
