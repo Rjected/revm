@@ -170,6 +170,9 @@ impl TxEnv {
     /// [EIP-4844]: https://eips.ethereum.org/EIPS/eip-4844
     #[inline]
     pub fn get_total_blob_gas(&self) -> u64 {
+        println!("self.blob_hashes.len() = {}", self.blob_hashes.len());
+        println!("GAS_PER_BLOB = {}", GAS_PER_BLOB);
+        println!("total = {}", self.blob_hashes.len() as u64 * GAS_PER_BLOB);
         GAS_PER_BLOB * self.blob_hashes.len() as u64
     }
 }
@@ -425,6 +428,9 @@ impl Env {
     /// [EIP-4844]: https://eips.ethereum.org/EIPS/eip-4844
     #[inline]
     pub fn calc_data_fee(&self) -> Option<u64> {
+        println!("calculating data fee");
+        println!("self.block.get_blob_gasprice = {:?}", self.block.get_blob_gasprice());
+        println!("self.tx.get_total_blob_gas = {:?}", self.tx.get_total_blob_gas());
         self.block
             .get_blob_gasprice()
             .map(|blob_gas_price| blob_gas_price * self.tx.get_total_blob_gas())
