@@ -77,4 +77,5 @@ pub fn blob_basefee<H: Host, SPEC: Spec>(interpreter: &mut Interpreter, host: &m
         interpreter,
         U256::from(host.env().block.get_blob_gasprice().unwrap_or_default())
     );
+    println!("blob gasprice: {:?}", host.env().block.get_blob_gasprice());
 }
