@@ -191,6 +191,7 @@ impl TxEnv {
     /// [EIP-4844]: https://eips.ethereum.org/EIPS/eip-4844
     #[inline]
     pub fn get_total_blob_gas(&self) -> u64 {
+        println!("tx blob gas (blobGas): {:?}", GAS_PER_BLOB * self.blob_hashes.len() as u64);
         GAS_PER_BLOB * self.blob_hashes.len() as u64
     }
 }
@@ -465,6 +466,7 @@ impl Env {
     #[inline]
     pub fn calc_data_fee(&self) -> Option<U256> {
         self.block.get_blob_gasprice().map(|blob_gas_price| {
+            println!("blob_gas_price: {}", blob_gas_price);
             U256::from(blob_gas_price).saturating_mul(U256::from(self.tx.get_total_blob_gas()))
         })
     }
