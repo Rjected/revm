@@ -466,7 +466,7 @@ impl Env {
     #[inline]
     pub fn calc_data_fee(&self) -> Option<U256> {
         self.block.get_blob_gasprice().map(|blob_gas_price| {
-            println!("blob_gas_price: {}", blob_gas_price);
+            println!("blob_gas_price (calculatedBlobFee): {}", blob_gas_price);
             U256::from(blob_gas_price).saturating_mul(U256::from(self.tx.get_total_blob_gas()))
         })
     }

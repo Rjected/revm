@@ -275,7 +275,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> Transact<DB::Error>
         // EIP-4844
         if GSPEC::enabled(CANCUN) {
             let data_fee = self.data.env.calc_data_fee().expect("already checked");
-            println!("calclutaing data fee: {:?}", data_fee);
+            println!("calculated data fee (total blobFee): {:?}", data_fee);
             gas_cost = gas_cost.saturating_add(data_fee);
         }
 
