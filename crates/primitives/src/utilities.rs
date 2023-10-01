@@ -32,7 +32,7 @@ pub fn calc_excess_blob_gas(parent_excess_blob_gas: u64, parent_blob_gas_used: u
 ///
 /// See also [the EIP-4844 helpers](https://eips.ethereum.org/EIPS/eip-4844#helpers).
 #[inline]
-pub fn calc_blob_gasprice(excess_blob_gas: u64) -> u128 {
+pub fn calc_blob_gasprice(excess_blob_gas: u128) -> u128 {
     fake_exponential(
         MIN_BLOB_GASPRICE,
         excess_blob_gas,
@@ -50,10 +50,9 @@ pub fn calc_blob_gasprice(excess_blob_gas: u64) -> u128 {
 ///
 /// Panics if `denominator` is zero.
 #[inline]
-pub fn fake_exponential(factor: u64, numerator: u64, denominator: u64) -> u128 {
+pub fn fake_exponential(factor: u64, numerator: u128, denominator: u64) -> u128 {
     assert_ne!(denominator, 0, "attempt to divide by zero");
     let factor = factor as u128;
-    let numerator = numerator as u128;
     let denominator = denominator as u128;
 
     let mut i = 1;
@@ -141,7 +140,7 @@ mod tests {
     #[test]
     fn fake_exp() {
         for t @ &(factor, numerator, denominator, expected) in &[
-            (1u64, 0u64, 1u64, 1u128),
+            (1u64, 0u128, 1u64, 1u128),
             (38493, 0, 1000, 38493),
             (0, 1234, 2345, 0),
             (1, 2, 1, 6), // approximate 7.389

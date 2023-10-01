@@ -181,7 +181,7 @@ pub fn execute_test_suite(
                 .set_blob_excess_gas_and_price(calc_excess_blob_gas(
                     parent_blob_gas_used.to(),
                     parent_excess_blob_gas.to(),
-                ));
+                ) as u128);
         }
 
         // tx env

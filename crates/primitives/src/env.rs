@@ -62,13 +62,13 @@ pub struct BlockEnv {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BlobExcessGasAndPrice {
-    pub excess_blob_gas: u64,
+    pub excess_blob_gas: u128,
     pub blob_gasprice: u128,
 }
 
 impl BlobExcessGasAndPrice {
     /// Takes excess blob gas and calculated blob fee with [`calc_blob_fee`]
-    pub fn new(excess_blob_gas: u64) -> Self {
+    pub fn new(excess_blob_gas: u128) -> Self {
         let blob_gasprice = calc_blob_gasprice(excess_blob_gas);
         Self {
             excess_blob_gas,
@@ -97,7 +97,7 @@ pub struct OptimismFields {
 impl BlockEnv {
     /// Takes `blob_excess_gas` saves it inside env
     /// and calculates `blob_fee` with [`BlobGasAndFee`].
-    pub fn set_blob_excess_gas_and_price(&mut self, excess_blob_gas: u64) {
+    pub fn set_blob_excess_gas_and_price(&mut self, excess_blob_gas: u128) {
         self.blob_excess_gas_and_price = Some(BlobExcessGasAndPrice::new(excess_blob_gas));
     }
     /// See [EIP-4844] and [`crate::calc_blob_gasprice`].
@@ -118,7 +118,7 @@ impl BlockEnv {
     ///
     /// [EIP-4844]: https://eips.ethereum.org/EIPS/eip-4844
     #[inline]
-    pub fn get_blob_excess_gas(&self) -> Option<u64> {
+    pub fn get_blob_excess_gas(&self) -> Option<u128> {
         self.blob_excess_gas_and_price
             .as_ref()
             .map(|a| a.excess_blob_gas)
