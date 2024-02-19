@@ -15,7 +15,10 @@ use crate::{
 
 /// Main precompile load
 #[inline]
-pub fn load_precompiles<SPEC: Spec>() -> Precompiles {
+pub fn load_precompiles<SPEC>() -> Precompiles
+where
+    SPEC: Spec,
+{
     Precompiles::new(PrecompileSpecId::from_spec_id(SPEC::SPEC_ID)).clone()
 }
 

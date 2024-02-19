@@ -68,7 +68,7 @@ impl<'a, EXT, DB: Database> EvmHandler<'a, EXT, DB> {
             >())),
             registers: Vec::new(),
             validation: ValidationHandler::new::<SPEC>(),
-            pre_execution: PreExecutionHandler::new::<SPEC>(),
+            pre_execution: PreExecutionHandler::<'_, EXT, DB>::new::<SPEC, EXT, DB>(),
             post_execution: PostExecutionHandler::new::<SPEC>(),
             execution: ExecutionHandler::new::<SPEC>(),
         }
