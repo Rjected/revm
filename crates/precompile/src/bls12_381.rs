@@ -85,6 +85,7 @@ mod test {
 
         for vector in test_vectors.0 {
             let test_name = format!("{file_name}/{}", vector.name);
+            println!("============== {:?} ==============", vector.name);
             let input = Bytes::from_hex(vector.input.clone()).unwrap_or_else(|e| {
                 panic!(
                     "could not deserialize input {} as hex in {test_name}: {e}",

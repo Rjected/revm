@@ -35,6 +35,9 @@ pub(super) fn extract_g1_input(
     let input_p0_x = remove_padding(&input[..PADDED_FP_LENGTH])?;
     let input_p0_y = remove_padding(&input[PADDED_FP_LENGTH..G1_INPUT_ITEM_LENGTH])?;
 
+    println!("input_p0_x {:?}", hex::encode(input_p0_x));
+    println!("input_p0_y {:?}", hex::encode(input_p0_y));
+
     let mut out = blst_p1_affine::default();
     // SAFETY: input_p0_x and input_p0_y have fixed length, out is a blst value.
     unsafe {

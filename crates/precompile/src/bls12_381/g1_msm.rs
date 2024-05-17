@@ -48,6 +48,7 @@ pub(super) fn g1_msm(input: &Bytes, gas_limit: u64) -> PrecompileResult {
             &input[i * g1_mul::INPUT_LENGTH..i * g1_mul::INPUT_LENGTH + G1_INPUT_ITEM_LENGTH],
             true,
         )?;
+        println!("p0_aff {:?}", p0_aff);
         let mut p0 = blst_p1::default();
         // SAFETY: p0 and p0_aff are blst values.
         unsafe { blst_p1_from_affine(&mut p0, p0_aff) };
