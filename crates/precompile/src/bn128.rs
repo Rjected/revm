@@ -112,7 +112,6 @@ pub fn run_pair(
     }
 }
 
-#[cfg(not(feature = "bn"))]
 mod matter_labs {
     use super::PAIR_ELEMENT_LEN;
     use crate::{Error, PrecompileOutput, PrecompileResult};
