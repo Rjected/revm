@@ -112,13 +112,13 @@ pub fn run_pair(
     }
 }
 
-mod matter_labs {
+pub mod matter_labs {
     use super::PAIR_ELEMENT_LEN;
     use crate::{Error, PrecompileOutput, PrecompileResult};
     use eth_pairings::public_interface::eip196::EIP196Executor;
     use std::string::ToString;
 
-    pub(crate) fn run_add(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
+    pub fn run_add(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
         if gas_cost > gas_limit {
             return Err(Error::OutOfGas.into());
         }
@@ -130,7 +130,7 @@ mod matter_labs {
         }
     }
 
-    pub(crate) fn run_mul(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
+    pub fn run_mul(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
         if gas_cost > gas_limit {
             return Err(Error::OutOfGas.into());
         }
@@ -142,7 +142,7 @@ mod matter_labs {
         }
     }
 
-    pub(crate) fn run_pair(
+    pub fn run_pair(
         input: &[u8],
         pair_per_point_cost: u64,
         pair_base_cost: u64,
@@ -170,7 +170,7 @@ mod matter_labs {
 }
 
 #[cfg(feature = "bn")]
-mod bn {
+pub mod bn {
     use super::PAIR_ELEMENT_LEN;
     use crate::{
         utilities::{bool_to_bytes32, right_pad},
@@ -222,7 +222,7 @@ mod bn {
         }
     }
 
-    pub(crate) fn run_add(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
+    pub fn run_add(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
         if gas_cost > gas_limit {
             return Err(Error::OutOfGas.into());
         }
@@ -240,7 +240,7 @@ mod bn {
         Ok(PrecompileOutput::new(gas_cost, output.into()))
     }
 
-    pub(crate) fn run_mul(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
+    pub fn run_mul(input: &[u8], gas_cost: u64, gas_limit: u64) -> PrecompileResult {
         if gas_cost > gas_limit {
             return Err(Error::OutOfGas.into());
         }
@@ -260,7 +260,7 @@ mod bn {
         Ok(PrecompileOutput::new(gas_cost, output.into()))
     }
 
-    pub(crate) fn run_pair(
+    pub fn run_pair(
         input: &[u8],
         pair_per_point_cost: u64,
         pair_base_cost: u64,
