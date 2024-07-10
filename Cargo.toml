@@ -14,6 +14,9 @@ default-members = ["crates/revm"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[workspace.lints.clippy]
+cast_possible_truncation = "warn"
+
 [profile.release]
 lto = true
 codegen-units = 1
