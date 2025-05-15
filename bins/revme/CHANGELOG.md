@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1](https://github.com/Rjected/revm/compare/revme-v5.0.0...revme-v5.0.1) - 2025-05-15
+
+### Other
+
+- Storage Types Alias ([#2461](https://github.com/Rjected/revm/pull/2461))
+
 ## [5.0.0](https://github.com/bluealloy/revm/compare/revme-v4.1.0...revme-v5.0.0) - 2025-05-07
 
 Dependency bump
