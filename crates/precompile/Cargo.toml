@@ -56,6 +56,9 @@ c-kzg = { workspace = true, optional = true, features = [
 	"ethereum_kzg_settings",
 ] }
 
+# nums
+rug = { workspace = true, features = ["integer"] }
+
 # Optionally use `kzg-rs` for a pure Rust implementation of KZG point evaluation.
 kzg-rs = { workspace = true, optional = true }
 

@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    # binary 
+    # binary
     "bins/revme",
 
     # libraries
@@ -54,7 +54,7 @@ context-interface = { path = "crates/context/interface", package = "revm-context
 handler = { path = "crates/handler", package = "revm-handler", version = "5.0.0", default-features = false }
 op-revm = { path = "crates/op-revm", package = "op-revm", version = "5.0.0", default-features = false }
 
-# alloy 
+# alloy
 alloy-eip2930 = { version = "0.2.1", default-features = false }
 alloy-eip7702 = { version = "0.6.1", default-features = false }
 alloy-primitives = { version = "1.1.2", default-features = false }
@@ -99,6 +99,9 @@ criterion = { package = "codspeed-criterion-compat", version = "2.7" }
 # serde
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }
+
+# rug for modexp
+rug = { version = "1.27", default-features = false }
 
 # misc
 auto_impl = "1.2.0"
