@@ -38,6 +38,16 @@ state.workspace = true
 [dev-dependencies]
 serde_json = { workspace = true, features = ["alloc", "preserve_order"] }
 serde = { workspace = true, features = ["derive"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+hex = "0.4"
+
+[[bench]]
+name = "nethermind_e2e"
+harness = false
+
+[[bench]]
+name = "nethermind_precompiles_e2e"
+harness = false
 
 [features]
 default = ["std", "c-kzg", "secp256k1", "portable", "blst", "tracer"]

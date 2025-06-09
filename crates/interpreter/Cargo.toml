@@ -42,6 +42,14 @@ harness = false
 name = "gas_opcodes"
 harness = false
 
+[[bench]]
+name = "nethermind_opcodes"
+harness = false
+
+[[bench]]
+name = "nethermind_precompiles"
+harness = false
+
 [features]
 default = ["std"]
 std = [

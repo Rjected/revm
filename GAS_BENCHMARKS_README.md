@@ -10,14 +10,52 @@ The benchmarks simulate the gas costs and performance characteristics of various
 
 The benchmarks are located in `crates/interpreter/benches/` and include:
 
-### 1. `gas_opcodes.rs` - Main gas opcode benchmarks
-- **Stack Operations**: Simulating ADDRESS, CALLER, ORIGIN opcodes
-- **Memory Operations**: MSIZE opcode simulation
-- **Keccak256 Operations**: Hash operations with 32-byte data
-- **Arithmetic Operations**: U256 addition operations
+### 1. `nethermind_opcodes.rs` - Complete port of Nethermind's VM opcodes
+This file contains ALL opcodes from Nethermind's tests-vm directory:
+- **ADDRESS**: Contract address retrieval
+- **BASEFEE**: EIP-1559 base fee
+- **BLOBBASEFEE**: EIP-4844 blob base fee
+- **BLOBHASH**: Blob hash retrieval
+- **CALLER/CALLERPOP**: Message sender operations
+- **CHAINID**: Chain identifier
+- **COINBASE**: Block beneficiary
+- **GAS/GASPOP**: Remaining gas operations
+- **GASLIMIT**: Block gas limit
+- **MSIZE**: Memory size
+- **NUMBER**: Block number
+- **ORIGIN**: Transaction origin
+- **PREVRANDAO**: Previous randomness
+- **PUSH0**: Push zero to stack
+- **SELFBALANCE**: Contract balance
+- **TIMESTAMP**: Block timestamp
+- **Keccak256**: Hash operations (1, 8, 32 bytes)
+- **Identity**: Identity precompile
+- **Transfers**: Value transfer simulation
+
+### 2. `nethermind_precompiles.rs` - Complete port of Nethermind's precompile benchmarks
+This file contains ALL precompile benchmarks from Nethermind:
+- **Blake2 Rounds**: 1K and 1M round variants
+- **EC Operations**:
+  - EcAdd (12-byte and 32-byte coordinates)
+  - EcMul (various coordinate and scalar sizes)
+  - EcPairing (2 sets)
+- **EcRecover**: Multiple cachable and uncachable variants
+- **ModExp**: Comprehensive modular exponentiation tests
+  - 208 gas balanced variants
+  - 215 gas exp-heavy variants
+  - 298 gas exp-heavy variants
+  - Minimum gas exp-heavy variants
+  - Pawel's test cases
+  - Vulnerability test cases (Guido, Pawel 1-4)
+
+### 3. `gas_opcodes.rs` - Simplified gas opcode benchmarks
+- **Stack Operations**: ADDRESS, CALLER, ORIGIN simulation
+- **Memory Operations**: MSIZE opcode
+- **Keccak256 Operations**: 32-byte hash operations
+- **Arithmetic Operations**: U256 addition
 - **PUSH0 Operations**: Stack push operations
 
-### 2. `opcodes.rs` - Component-level benchmarks
+### 4. `opcodes.rs` - Component-level benchmarks
 - **Stack Operations**: Push/pop, dup operations
 - **Memory Operations**: Resize, set/get operations
 - **Address Operations**: Address conversions
@@ -40,6 +78,13 @@ cargo bench
 ### Run specific benchmark suite
 ```bash
 cd crates/interpreter
+# Run complete Nethermind opcode benchmarks
+cargo bench --bench nethermind_opcodes
+
+# Run complete Nethermind precompile benchmarks
+cargo bench --bench nethermind_precompiles
+
+# Run simplified benchmarks
 cargo bench --bench gas_opcodes
 cargo bench --bench opcodes
 ```
@@ -67,10 +112,11 @@ The benchmarks generate HTML reports in `target/criterion/` with detailed perfor
 ## Architecture
 
 The benchmarks are structured to:
-1. Match Nethermind's gas limit configurations (30M, 60M, 80M, 100M, 150M)
-2. Simulate realistic opcode execution patterns
-3. Measure performance at scale (10,000 iterations for most opcodes)
-4. Use Criterion.rs for statistical rigor and reproducibility
+1. **Exactly match Nethermind's test cases**: Every single test from tests-vm is represented
+2. **Match Nethermind's gas limit configurations**: 30M, 50M, 60M, 80M, 100M, 150M (note: 50M is included)
+3. **Simulate realistic opcode execution patterns**: 10,000 iterations for simple ops, fewer for expensive ones
+4. **Use Criterion.rs for statistical rigor**: Provides detailed performance metrics and comparisons
+5. **Separate opcodes from precompiles**: Organized by computation type for clarity
 
 ## Implementation Notes
 

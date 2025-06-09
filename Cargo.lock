@@ -3734,6 +3734,8 @@ dependencies = [
 name = "revm"
 version = "25.0.0"
 dependencies = [
+ "criterion",
+ "hex",
  "revm-bytecode",
  "revm-context",
  "revm-context-interface",
