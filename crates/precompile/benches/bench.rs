@@ -9,6 +9,8 @@ pub mod eip1962;
 pub mod eip2537;
 /// `eip4844` benchmarks
 pub mod eip4844;
+/// `modexp` benchmarks
+pub mod modexp;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
@@ -35,6 +37,9 @@ pub fn benchmark_crypto_precompiles(c: &mut Criterion) {
 
     // Run KZG point evaluation benchmarks
     eip4844::add_benches(&mut group);
+
+    // Run modexp benchmarks
+    modexp::add_benches(&mut group);
 }
 
 criterion_group! {
