@@ -14,6 +14,12 @@ fn bench_bn128_add(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("bn128_add");
     
+    // Print feature status
+    #[cfg(feature = "gnark-optimized")]
+    println!("Running with gnark-optimized feature enabled");
+    #[cfg(not(feature = "gnark-optimized"))]
+    println!("Running with default arkworks implementation");
+    
     // Ensure input is properly padded
     let padded_input: [u8; ADD_INPUT_LEN] = {
         let mut buf = [0u8; ADD_INPUT_LEN];

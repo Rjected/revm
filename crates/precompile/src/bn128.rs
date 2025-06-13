@@ -12,6 +12,21 @@ cfg_if::cfg_if! {
             encode_g1_point, g1_point_add, g1_point_mul, pairing_check, read_g1_point, read_g2_point,
             read_scalar,
         };
+    } else if #[cfg(all(feature = "gnark-optimized", target_arch = "x86_64"))] {
+        mod arkworks;
+        mod gnark_optimized;
+        mod g1_add_asm;
+        mod field_ops;
+        mod assembly;
+        
+        use arkworks::{
+            g1_point_mul, pairing_check, read_g2_point, read_scalar,
+        };
+        use gnark_optimized::{
+            encode_g1_point_optimized as encode_g1_point,
+            read_g1_point_optimized as read_g1_point,
+        };
+        use g1_add_asm::g1_add_asm as g1_point_add;
     } else if #[cfg(feature = "gnark-optimized")] {
         mod arkworks;
         mod gnark_optimized;
