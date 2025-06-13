@@ -75,6 +75,7 @@ cfg-if.workspace = true
 criterion.workspace = true
 rand = { workspace = true, features = ["std"] }
 rstest.workspace = true
+ark-std = { version = "0.5", default-features = false, features = ["std"] }
 
 [features]
 default = ["std", "c-kzg", "secp256k1", "portable", "blst"]
@@ -120,6 +121,9 @@ blst = ["dep:blst"]
 
 # Enables the substrate implementation of eip1962
 bn = ["dep:bn"]
+
+# Enables gnark-inspired optimizations for BN254 operations
+gnark-optimized = []
 
 [[bench]]
 name = "bench"
