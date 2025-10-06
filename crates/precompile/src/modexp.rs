@@ -24,7 +24,7 @@ pub const BERLIN: Precompile =
 pub const OSAKA: Precompile =
     Precompile::new(PrecompileId::ModExp, crate::u64_to_address(5), osaka_run);
 
-#[cfg(feature = "gmp")]
+#[cfg(all(feature = "gmp", not(target_os = "windows")))]
 /// GMP-based modular exponentiation implementation
 pub(crate) fn modexp(base: &[u8], exponent: &[u8], modulus: &[u8]) -> Vec<u8> {
     use rug::{integer::Order::Msf, Integer};
@@ -43,7 +43,7 @@ pub(crate) fn modexp(base: &[u8], exponent: &[u8], modulus: &[u8]) -> Vec<u8> {
     output
 }
 
-#[cfg(not(feature = "gmp"))]
+#[cfg(any(not(feature = "gmp"), target_os = "windows"))]
 pub(crate) fn modexp(base: &[u8], exponent: &[u8], modulus: &[u8]) -> Vec<u8> {
     aurora_engine_modexp::modexp(base, exponent, modulus)
 }

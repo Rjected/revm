@@ -23,8 +23,6 @@ primitives.workspace = true
 
 # modexp precompiles
 aurora-engine-modexp.workspace = true
-# gmp wrapper
-rug = { workspace = true, features = ["integer"], optional = true }
 
 # ecRecover
 k256 = { workspace = true, features = ["ecdsa"] }
@@ -66,6 +64,10 @@ p256 = { workspace = true, features = ["ecdsa"] }
 # utils
 cfg-if.workspace = true
 arrayref = "0.3.6"
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+# gmp wrapper
+rug = { workspace = true, features = ["integer"], optional = true }
 
 [dev-dependencies]
 criterion.workspace = true
