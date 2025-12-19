@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [11.0.0](https://github.com/Rjected/revm/compare/revme-v10.0.2...revme-v11.0.0) - 2025-12-19
+
+### Added
+
+- BAL EIP-7928 ([#3070](https://github.com/Rjected/revm/pull/3070))
+- DatabaseCommitExt + increment_balances ([#3195](https://github.com/Rjected/revm/pull/3195))
+- sort accounts by address in blockchaintest output ([#3182](https://github.com/Rjected/revm/pull/3182))
+
+### Fixed
+
+- deduplicate post-state validation error handling ([#3228](https://github.com/Rjected/revm/pull/3228))
+- *(revme)* incorrect debug log message in btest ([#3233](https://github.com/Rjected/revm/pull/3233))
+- *(statetest)* use spec-aware blob base fee update fraction ([#3210](https://github.com/Rjected/revm/pull/3210))
+
+### Other
+
+- *(fmt)* merge all imports ([#3184](https://github.com/Rjected/revm/pull/3184))
+
 ## [10.0.2](https://github.com/bluealloy/revm/compare/revme-v10.0.0...revme-v10.0.2) - 2025-11-14
 
 ### Other
