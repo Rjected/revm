@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [9.0.0](https://github.com/Rjected/revm/compare/revm-state-v8.1.1...revm-state-v9.0.0) - 2025-12-19
+
+### Added
+
+- BAL EIP-7928 ([#3070](https://github.com/Rjected/revm/pull/3070))
+
+### Other
+
+- deduplicate local/global flags setup ([#3190](https://github.com/Rjected/revm/pull/3190))
+- *(fmt)* merge all imports ([#3184](https://github.com/Rjected/revm/pull/3184))
+
 ## [8.1.1](https://github.com/bluealloy/revm/compare/revm-state-v8.1.0...revm-state-v8.1.1) - 2025-11-07
 
 ### Other

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [14.0.0](https://github.com/Rjected/revm/compare/revm-statetest-types-v13.1.0...revm-statetest-types-v14.0.0) - 2025-12-19
+
+### Added
+
+- BAL EIP-7928 ([#3070](https://github.com/Rjected/revm/pull/3070))
+
+### Fixed
+
+- *(statetest)* use spec-aware blob base fee update fraction ([#3210](https://github.com/Rjected/revm/pull/3210))
+
+### Other
+
+- *(fmt)* merge all imports ([#3184](https://github.com/Rjected/revm/pull/3184))
+
 ## [13.1.0](https://github.com/bluealloy/revm/compare/revm-statetest-types-v13.0.0...revm-statetest-types-v13.1.0) - 2025-11-14
 
 ### Other
